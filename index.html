@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MilestoneMeter</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+  </head>
+  <style>
+body {
+  font-family: Arial, sans-serif;
+  background: #ffffff; /* Set the background to solid white */
+  color: #333;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+    @keyframes backgroundAnimation {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    .watch-container {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  background: #000000; /* Solid black for the watch background */
+  border-radius: 30px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 10px;
+}
+    .digital-crown {
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      width: 10px;
+      height: 25px;
+      background: #555;
+      border-radius: 5px;
+      transform: translateY(-50%);
+    }
+
+    .side-button {
+      position: absolute;
+      right: -6px;
+      top: 35%;
+      width: 8px;
+      height: 15px;
+      background: #555;
+      border-radius: 5px;
+    }
+
+    .progress-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 60%;
+      background: conic-gradient(#00f260 0% 0%, #444 0% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 0 20px rgba(0, 242, 96, 0.8),
+        inset 0 5px 10px rgba(0, 0, 0, 0.7);
+      margin-bottom: 10px;
+      transition: background 0.6s ease, box-shadow 0.6s ease;
+      animation: gradientAnimation 5s linear infinite;
+    }
+
+    @keyframes gradientAnimation {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    .progress-ring.complete {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 30px rgba(0, 242, 96, 0.8);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 50px rgba(0, 242, 96, 1);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 30px rgba(0, 242, 96, 0.8);
+      }
+    }
+
+    .progress-ring::before {
+      content: "";
+      width: 100px;
+      height: 100px;
+      background: #000;
+      border-radius: 50%;
+      position: absolute;
+      box-shadow: inset 0 4px 8px rgba(255, 255, 255, 0.1);
+    }
+
+    .progress-text {
+      color: #00f260;
+      font-size: 24px;
+      font-weight: bold;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 10px rgba(0, 242, 96, 0.8),
+        0 0 20px rgba(0, 242, 96, 0.5);
+    }
+
+    #completionBadge {
+      position: absolute;
+      bottom: 20px;
+      text-align: center;
+      display: none;
+    }
+    #completionBadge p {
+      font-size: 1px; /* Slightly smaller text */
+      color: #fff;
+    }
+    #completionBadge i {
+      font-size: 50px;
+      font-size: 45px; /* Slightly smaller text */
+
+      color: gold;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    .sound-indicator {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #00f260;
+      border-radius: 50%;
+      animation: ripple 1s ease-out;
+    }
+  </style>
+  <body>
+    <div class="watch-container">
+      <div class="side-button"></div>
+      <div class="digital-crown"></div>
+      <div class="progress-ring" id="progressRing">
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
+      <div id="completionBadge">
+        <i class="fas fa-trophy"></i>
+        <p>Successfully completed, congrats!</p>
+      </div>
+    </div>
+
+    <!-- Sound Effect -->
+    <audio id="yaySound" src="short-crowd-cheer-6713.mp3"></audio>
+
+    <script>
+      let completedSections = 0;
+      const totalSections = 5;
+      const yaySound = document.getElementById("yaySound");
+      const progressRing = document.getElementById("progressRing");
+      const progressText = document.getElementById("progressText");
+      const undoButton = document.getElementById("undoButton");
+
+      function updateProgress() {
+        if (completedSections < totalSections) {
+          completedSections++;
+          updateDisplay();
+        }
+      }
+
+      function undoProgress() {
+        if (completedSections > 0) {
+          completedSections--;
+          updateDisplay();
+        }
+      }
+
+      function resetProgress() {
+        completedSections = 0;
+        progressRing.classList.remove("complete");
+        updateDisplay();
+      }
+
+      // Function to save the current progress to localStorage
+      function saveProgress() {
+        localStorage.setItem("completedSections", completedSections);
+      }
+
+      // Function to update the display based on the current progress
+      function updateDisplay() {
+        const percentage = Math.round(
+          (completedSections / totalSections) * 100
+        );
+
+        if (progressRing && progressText) {
+          progressRing.style.background = `conic-gradient(#00f260 ${percentage}%, #444 ${percentage}% 100%)`;
+          progressText.textContent = `${percentage}%`;
+        }
+
+        if (completedSections === totalSections) {
+          playSound();
+          launchConfetti();
+          completionBadge.style.display = "block";
+        }
+      }
+
+      function playSound() {
+        yaySound.currentTime = 0;
+        yaySound.play().catch(() => {});
+
+        const indicator = document.createElement("div");
+        indicator.className = "sound-indicator";
+        progressRing.appendChild(indicator);
+        setTimeout(() => indicator.remove(), 1000);
+      }
+
+      // Listen for messages to update progress, but prevent multiple updates for the same section
+      window.addEventListener("message", (event) => {
+        if (event.data === "chapterCompleted") {
+          if (completedSections < totalSections) {
+            completedSections++;
+            localStorage.setItem("completedSections", completedSections);
+            updateDisplay();
+          }
+        }
+      });
+
+      // Function to launch confetti animation
+      function launchConfetti() {
+        confetti({
+          particleCount: 200,
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: ["#00f260", "#ff0f7b", "#ffea00", "#00bfff"],
+          shapes: ["circle", "square"],
+        });
+      }
+
+      // Initial display update on page load to reflect saved progress
+      updateDisplay();
+    </script>
+  </body>
+</html>
+
+  </body>
+</html>
